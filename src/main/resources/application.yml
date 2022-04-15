@@ -1,0 +1,8 @@
+server:
+  servlet:
+    context-path: /com.sh.orc
+
+logging:
+  config: classpath:logback.xml
+  level:
+    root: info
