@@ -1,6 +1,8 @@
 package com.sh.ocr.controller;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
+import com.sh.ocr.utils.QrcodeUtilz;
 import com.sh.ocr.utils.StringUtilz;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -167,6 +169,10 @@ public class OcrController {
         int qrcodeRectX = biWidth;
         int qrcodeRectY = (int) (biHeight * 0.17f);
         BufferedImage subQrcodeImage = ImageHelper.getSubImage(bi, qrcodeStartX, qrcodeStartY, qrcodeRectX, qrcodeRectY);
+        String qrcodeContent = QrcodeUtilz.readQRCode(subQrcodeImage);
+        QrCode qrCode = JSON.parseObject(qrcodeContent, QrCode.class);
+        result.setQrcodeContent(qrCode);
+        log.info("qrcodeContent :{}", qrcodeContent);
         // 处理文件写入
         boolean writeResult = ImageIO.write(subQrcodeImage, "jpeg", new File("E://12315.jpeg"));
         log.info("writeResult -----> :{}", writeResult);
@@ -174,13 +180,13 @@ public class OcrController {
         int pageIteratorLevel = ITessAPI.TessPageIteratorLevel.RIL_TEXTLINE;
         List<Word> wordList = instance.getWords(subTimeAndStatusImage, pageIteratorLevel);
         int listSize = wordList.size();
-        if(listSize > 0){
+        if (listSize > 0) {
             Word timeWord = wordList.get(0);
             String timeText = timeWord.getText();
             String timeInfo = StringUtilz.extractTimeInfo(timeText);
             result.setTime(timeInfo);
         }
-        if(listSize > 1){
+        if (listSize > 1) {
             Word statusWord = wordList.get(1);
             String statusText = statusWord.getText();
             String statusInfo = StringUtilz.extractStatusInfo(statusText);
@@ -266,8 +272,15 @@ public class OcrController {
 
     @Data
     static class OcrRes{
-        String name;
-        String time;
-        String status;
+        private String name;
+        private String time;
+        private String status;
+        private QrCode qrcodeContent;
+    }
+
+    @Data
+    static class QrCode{
+        private String codeId;
+        private String dueTime;
     }
 }

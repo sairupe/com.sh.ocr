@@ -17,6 +17,7 @@ public class ExceptionControllerAdvice {
     @ResponseStatus(HttpStatus.OK)
     public RestResult handle(Exception e) {
         log.error(e.getMessage(), e);
+        e.printStackTrace();
         RestResult result = new RestResult();
         result.setCode("500");
         result.setMsg(e.getMessage());
