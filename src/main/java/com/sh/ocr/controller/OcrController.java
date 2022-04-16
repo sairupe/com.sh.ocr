@@ -1,7 +1,6 @@
 package com.sh.ocr.controller;
 
 import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
 import com.sh.ocr.utils.QrcodeUtilz;
 import com.sh.ocr.utils.StringUtilz;
 import lombok.Data;
@@ -11,6 +10,7 @@ import net.sourceforge.tess4j.ITesseract;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.Word;
 import net.sourceforge.tess4j.util.ImageHelper;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,6 +20,8 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -135,8 +137,8 @@ public class OcrController {
         // DEBUG
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/12315.jpeg");
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/img.png");
-//        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode.jpg");
-        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode2.jpg");
+        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode.jpg");
+//        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode2.jpg");
         // JAR
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("/sample/healthyCode.jpg");
         if (healthyCodeIs == null) {
@@ -155,7 +157,7 @@ public class OcrController {
         BufferedImage invertSubNameImage = ImageHelper.invertImageColor(subNameImage);
         // 识别用户名
         String userName = instance.doOCR(invertSubNameImage);
-        userName = StringUtilz.extractNameInfo(userName);
+        userName = StringUtilz.extractHealthyNameInfo(userName);
         result.setName(userName);
         // 剪裁截图时间和状态值
         int timeAndStatusStartX = 0;
@@ -183,15 +185,83 @@ public class OcrController {
         if (listSize > 0) {
             Word timeWord = wordList.get(0);
             String timeText = timeWord.getText();
-            String timeInfo = StringUtilz.extractTimeInfo(timeText);
+            String timeInfo = StringUtilz.extractHealthyTimeInfo(timeText);
             result.setTime(timeInfo);
         }
         if (listSize > 1) {
             Word statusWord = wordList.get(1);
             String statusText = statusWord.getText();
-            String statusInfo = StringUtilz.extractStatusInfo(statusText);
+            String statusInfo = StringUtilz.extractHealthyStatusInfo(statusText);
             result.setStatus(statusInfo);
         }
+        return result;
+    }
+
+    @GetMapping("/travelCard")
+    public TravelRes travelCard() throws Exception {
+        TravelRes result = new TravelRes();
+        log.info("ENV : dataPath : {}", dataPath);
+        // 创建实例
+        ITesseract instance = new Tesseract();
+        // 训练文件路径
+        instance.setDatapath(dataPath);
+        // 设置识别语言
+        instance.setLanguage("chi_sim");
+        // 设置识别引擎 ITessAPI TessOcrEngineMode.class
+        instance.setOcrEngineMode(1);
+        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/travelCard.jpg");
+        if (healthyCodeIs == null) {
+            throw new RuntimeException("找不到行程码文件");
+        }
+        // 图像预处理
+        BufferedImage bi = ImageIO.read(healthyCodeIs);
+//        BufferedImage binaryImage = ImageHelper.convertImageToBinary(bi);
+//        // 处理文件写入
+//        boolean writeResult = ImageIO.write(binaryImage, "jpeg", new File("E://12345.jpeg"));
+//        log.info("writeResult -----> :{}", writeResult);
+
+        int pageIteratorLevel = ITessAPI.TessPageIteratorLevel.RIL_TEXTLINE;
+        List<Word> wordList = instance.getWords(bi, pageIteratorLevel);
+        int hitColorTipsIndex = -1;
+        int hitPhoneIndex = -1;
+        int hitTimeIndex = -1;
+        boolean startPath = false;
+        String longPath = "";
+        List<String> eachCityList = new ArrayList<>();
+        for (int i = 0; i < wordList.size(); i++) {
+            Word word = wordList.get(i);
+            String text = word.getText();
+            String textStr = text.replaceAll(" ", "");
+            if (textStr.contains("请收下")) {
+                hitColorTipsIndex = i;
+                String status = StringUtilz.extractTravelStatus(textStr);
+                result.setStatus(status);
+            } else if (textStr.contains("动态")) {
+                hitPhoneIndex = i;
+                String phone = StringUtilz.extractTravelPhone(textStr);
+                result.setPhone(phone);
+            } else if (textStr.contains("更新于")) {
+                // TODO 二值化时间丢失，需要直方图双高峰低谷的点作为阈值而不是127
+                hitTimeIndex = i;
+                String time = StringUtilz.extractTravelTime(text);// text非textStr
+                time = time.replaceAll("\\.", "-");
+                result.setTime(time);
+            } else if (textStr.contains("途经")) {// 读到市结尾, card2发现连途径两字都识别不出
+                int lastColonIndex = textStr.lastIndexOf(":");
+                String substring = textStr.substring(lastColonIndex + 1, textStr.length() - 1);
+                longPath += substring;
+                startPath = true;
+            } else if (startPath) {
+                longPath += textStr;
+            }
+        }
+        String path = longPath.substring(0, longPath.lastIndexOf("市"));
+        String[] pathArray = StringUtils.split(path, "市");
+        List<String> pathList = Arrays.asList(pathArray);
+        result.setPath(pathList);
+//        result.setLongPath(longPath);
+//        String content = instance.doOCR(bi);
+//        result.setContent(content);
         return result;
     }
 
@@ -206,7 +276,7 @@ public class OcrController {
         String statusStr = "绿 码";
         log.info("11111");
 //        String timeRegex = "\\d{4}(\\-|)\\d{1,2}}(\\-|)\\d{1,2} ([0-1]?[0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])$";
-        String timeRegex = "\\d{4}(\\-)\\d{1,2}(\\-)\\d{1,2} ([0-1]?[0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])";
+        String timeRegex = "\\d{4}(.)\\d{1,2}(\\-)\\d{1,2} ([0-1]?[0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])";
         Pattern timeP = Pattern.compile(timeRegex);
         Matcher timeM = timeP.matcher(timeStr);
         while (timeM.find()) {
@@ -247,7 +317,7 @@ public class OcrController {
     /**
      * setOcrEngineMode = 1
      * healthyCode.jpg
-     *
+     * <p>
      * 师 晓 棣 动 仪 | 国 G Dt29% 4:32
      * 〈 广 西 健 康 码 … @
      * E
@@ -271,7 +341,7 @@ public class OcrController {
 
 
     @Data
-    static class OcrRes{
+    static class OcrRes {
         private String name;
         private String time;
         private String status;
@@ -279,8 +349,18 @@ public class OcrController {
     }
 
     @Data
-    static class QrCode{
+    static class QrCode {
         private String codeId;
         private String dueTime;
+    }
+
+    @Data
+    static class TravelRes {
+        private String status;
+        private String time;
+        private String phone;
+        private List<String> path;
+//        private String longPath;
+//        private String content;
     }
 }
