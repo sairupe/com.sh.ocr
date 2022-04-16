@@ -134,7 +134,7 @@ public class OcrController {
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/12315.jpeg");
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/img.png");
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode.jpg");
-        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode.jpg");
+        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode2.jpg");
         // JAR
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("/sample/healthyCode.jpg");
         if (healthyCodeIs == null) {
@@ -161,8 +161,14 @@ public class OcrController {
         int timeAndStatusRectX = biWidth;
         int timeAndStatusRectY = (int) (biHeight * 0.085f);
         BufferedImage subTimeAndStatusImage = ImageHelper.getSubImage(bi, timeAndStatusStartX, timeAndStatusStartY, timeAndStatusRectX, timeAndStatusRectY);
+        // 剪裁截图时间和状态值
+        int qrcodeStartX = 0;
+        int qrcodeStartY = timeAndStatusStartY + timeAndStatusRectY + (int) (biHeight * 0.03f);
+        int qrcodeRectX = biWidth;
+        int qrcodeRectY = (int) (biHeight * 0.17f);
+        BufferedImage subQrcodeImage = ImageHelper.getSubImage(bi, qrcodeStartX, qrcodeStartY, qrcodeRectX, qrcodeRectY);
         // 处理文件写入
-        boolean writeResult = ImageIO.write(subTimeAndStatusImage, "jpeg", new File("E://12315.jpeg"));
+        boolean writeResult = ImageIO.write(subQrcodeImage, "jpeg", new File("E://12315.jpeg"));
         log.info("writeResult -----> :{}", writeResult);
         // 识别时间和状态
         int pageIteratorLevel = ITessAPI.TessPageIteratorLevel.RIL_TEXTLINE;
