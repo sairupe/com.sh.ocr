@@ -1,6 +1,7 @@
 package com.sh.ocr.controller;
 
 import com.alibaba.fastjson.JSON;
+import com.sh.ocr.utils.StringUtilz;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.sourceforge.tess4j.ITessAPI;
@@ -8,8 +9,6 @@ import net.sourceforge.tess4j.ITesseract;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.Word;
 import net.sourceforge.tess4j.util.ImageHelper;
-import net.sourceforge.tess4j.util.ImageIOHelper;
-import net.sourceforge.tess4j.util.Utils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,6 +19,8 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.InputStream;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 @Slf4j
@@ -32,13 +33,14 @@ public class OcrController {
 
 
     @GetMapping("/test")
-    public String keys() {
-        A a = new A();
-        a.setCode("200");
-        a.setMsg("绿码");
+    public OcrRes keys() {
+        OcrRes a = new OcrRes();
+        a.setName("啊啊啊");
+        a.setTime("2020-2");
+        a.setStatus("绿码");
         String result = JSON.toJSONString(a);
         log.error("error :{} ", result);
-        return result;
+        return a;
     }
 
     @GetMapping("/healthyCode")
@@ -62,8 +64,77 @@ public class OcrController {
         // 读取文件
         // DEBUG
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/12315.jpeg");
-        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/img.png");
+//        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/img.png");
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode.jpg");
+        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode2.jpg");
+        // JAR
+//        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("/sample/healthyCode.jpg");
+        if (healthyCodeIs == null) {
+            throw new RuntimeException("找不到健康码文件");
+        }
+        // 图像预处理
+        BufferedImage bi = ImageIO.read(healthyCodeIs);
+        // 剪裁
+        int biWidth = bi.getWidth();
+        int biHeight = bi.getHeight();
+        int startX = 0;
+        int startY = (int) (biHeight * 0.15f);
+        int rectX = biWidth;
+        int rectY = (int) (biHeight * 0.4f);
+        BufferedImage subImage = ImageHelper.getSubImage(bi, startX, startY, rectX, rectY);
+        BufferedImage binarySubImage = ImageHelper.convertImageToBinary(subImage);
+        // 剪裁姓名区, 名字为白色不能二值化
+        int nameStartX = 0;
+        int nameStartY = (int) (biHeight * 0.1f);
+        int nameRectX = biWidth;
+        int nameRectY = (int) (biHeight * 0.05f);
+        BufferedImage subNameImage = ImageHelper.getSubImage(bi, nameStartX, nameStartY, nameRectX, nameRectY);
+        BufferedImage invertSubNameImage = ImageHelper.invertImageColor(subNameImage);
+        // 反转颜色
+        BufferedImage invertImg = ImageHelper.invertImageColor(bi);
+        BufferedImage invertSubImg = ImageHelper.invertImageColor(subImage);
+        // 二值化
+        BufferedImage invert2BinaryImage = ImageHelper.convertImageToBinary(invertImg);
+        BufferedImage binaryImage = ImageHelper.convertImageToBinary(bi);
+        // 灰度化
+        BufferedImage grayImg = ImageHelper.convertImageToGrayscale(bi);
+        // 处理文件写入
+        boolean writeResult = ImageIO.write(binarySubImage, "jpeg", new File("E://12315.jpeg"));
+        log.info("writeResult -----> :{}", writeResult);
+        // 取词处理, 按照每个字取词
+//        int pageIteratorLevel = ITessAPI.TessPageIteratorLevel.RIL_TEXTLINE;
+//        List<Word> wordList = instance.getWords(bi, pageIteratorLevel);
+//        for (Word word : wordList) {
+//            log.info(word.toString());
+//        }
+        // 识别
+        String userName = instance.doOCR(invertSubNameImage);
+        String content = instance.doOCR(binarySubImage);
+        result = userName + "\n" + content;
+        return result;
+    }
+
+
+    @GetMapping("/healthyCodeV2")
+    public OcrRes healthyCodeV2() throws Exception {
+        OcrRes result = new OcrRes();
+        log.info("ENV : dataPath : {}", dataPath);
+        // 创建实例
+        ITesseract instance = new Tesseract();
+        // 训练文件路径
+        instance.setDatapath(dataPath);
+        // 设置识别语言
+        instance.setLanguage("chi_sim");
+        // 设置识别引擎 ITessAPI TessOcrEngineMode.class
+        instance.setOcrEngineMode(1);
+        // 识别图形模式？
+//        instance.setPageSegMode(ITessAPI.TessPageSegMode.PSM_SPARSE_TEXT);
+        // 读取文件
+        // DEBUG
+//        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/12315.jpeg");
+//        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/img.png");
+//        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode.jpg");
+        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode.jpg");
         // JAR
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("/sample/healthyCode.jpg");
         if (healthyCodeIs == null) {
@@ -73,25 +144,66 @@ public class OcrController {
         BufferedImage bi = ImageIO.read(healthyCodeIs);
         int biWidth = bi.getWidth();
         int biHeight = bi.getHeight();
-        BufferedImage invertImg = ImageHelper.invertImageColor(bi);
-        // 二值化
-        BufferedImage invert2BinaryImage = ImageHelper.convertImageToBinary(invertImg);
-        BufferedImage binaryImage = ImageHelper.convertImageToBinary(bi);
-        // 灰度化
-        BufferedImage grayImg = ImageHelper.convertImageToGrayscale(bi);
+        // 剪裁姓名区, 名字为白色不能二值化
+        int nameStartX = 0;
+        int nameStartY = (int) (biHeight * 0.1f);
+        int nameRectX = biWidth;
+        int nameRectY = (int) (biHeight * 0.05f);
+        BufferedImage subNameImage = ImageHelper.getSubImage(bi, nameStartX, nameStartY, nameRectX, nameRectY);
+        BufferedImage invertSubNameImage = ImageHelper.invertImageColor(subNameImage);
+        // 识别用户名
+        String userName = instance.doOCR(invertSubNameImage);
+        userName = StringUtilz.extractNameInfo(userName);
+        result.setName(userName);
+        // 剪裁截图时间和状态值
+        int timeAndStatusStartX = 0;
+        int timeAndStatusStartY = nameStartY + nameRectY + (int) (biHeight * 0.02f);
+        int timeAndStatusRectX = biWidth;
+        int timeAndStatusRectY = (int) (biHeight * 0.085f);
+        BufferedImage subTimeAndStatusImage = ImageHelper.getSubImage(bi, timeAndStatusStartX, timeAndStatusStartY, timeAndStatusRectX, timeAndStatusRectY);
         // 处理文件写入
-//        boolean writeResult = ImageIO.write(bi, "jpeg", new File("E://12315.jpeg"));
-//        log.info("writeResult -----> :{}", writeResult);
-        // 识别
-        result = instance.doOCR(bi);
-        // 取词处理, 按照每个字取词
+        boolean writeResult = ImageIO.write(subTimeAndStatusImage, "jpeg", new File("E://12315.jpeg"));
+        log.info("writeResult -----> :{}", writeResult);
+        // 识别时间和状态
         int pageIteratorLevel = ITessAPI.TessPageIteratorLevel.RIL_TEXTLINE;
-        List<Word> wordList = instance.getWords(bi, pageIteratorLevel);
-        for (Word word : wordList) {
-            log.info(word.toString());
+        List<Word> wordList = instance.getWords(subTimeAndStatusImage, pageIteratorLevel);
+        int listSize = wordList.size();
+        if(listSize > 0){
+            Word timeWord = wordList.get(0);
+            String timeText = timeWord.getText();
+            String timeInfo = StringUtilz.extractTimeInfo(timeText);
+            result.setTime(timeInfo);
+        }
+        if(listSize > 1){
+            Word statusWord = wordList.get(1);
+            String statusText = statusWord.getText();
+            String statusInfo = StringUtilz.extractStatusInfo(statusText);
+            result.setStatus(statusInfo);
         }
         return result;
     }
+
+    public static void main(String[] args) {
+        /**
+         * | 2022-04-14 16:32:00 ,
+         *
+         *  绿 码
+         */
+        String timeStr = "| 2022-04-14 16:32:00 ,";
+        String timeStr2 = "2022-04-14 16:32:00";
+        String statusStr = "绿 码";
+        log.info("11111");
+//        String timeRegex = "\\d{4}(\\-|)\\d{1,2}}(\\-|)\\d{1,2} ([0-1]?[0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])$";
+        String timeRegex = "\\d{4}(\\-)\\d{1,2}(\\-)\\d{1,2} ([0-1]?[0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])";
+        Pattern timeP = Pattern.compile(timeRegex);
+        Matcher timeM = timeP.matcher(timeStr);
+        while (timeM.find()) {
+            String group = timeM.group();
+            log.info("time : {}", group);
+        }
+
+    }
+
 
     /**
      * setOcrEngineMode = 0
@@ -147,8 +259,9 @@ public class OcrController {
 
 
     @Data
-    static class A{
-        String code;
-        String msg;
+    static class OcrRes{
+        String name;
+        String time;
+        String status;
     }
 }
