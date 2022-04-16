@@ -69,7 +69,6 @@
 			<artifactId>tess4j</artifactId>
 			<version>4.5.3</version>
 		</dependency>
-
 	</dependencies>
 
 	<build>

@@ -7,3 +7,6 @@ logging:
   level:
     root: info
 
+tess4j:
+  data-path: E:/tessdata-main
+

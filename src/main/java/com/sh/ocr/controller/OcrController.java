@@ -3,21 +3,33 @@ package com.sh.ocr.controller;
 import com.alibaba.fastjson.JSON;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import net.sourceforge.tess4j.ITessAPI;
 import net.sourceforge.tess4j.ITesseract;
 import net.sourceforge.tess4j.Tesseract;
+import net.sourceforge.tess4j.Word;
+import net.sourceforge.tess4j.util.ImageHelper;
+import net.sourceforge.tess4j.util.ImageIOHelper;
+import net.sourceforge.tess4j.util.Utils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.InputStream;
+import java.util.List;
 
 
 @Slf4j
 @RestController
 @RequestMapping("/ocr")
 public class OcrController {
+
+    @Value("${tess4j.data-path}")
+    private String dataPath;
+
 
     @GetMapping("/test")
     public String keys() {
@@ -31,25 +43,53 @@ public class OcrController {
 
     @GetMapping("/healthyCode")
     public String healthyCode() throws Exception {
-        String TESSDATA_PREFIX = System.getenv("TESSDATA_PREFIX");
-        log.info("ENV : TESSDATA_PREFIX : {}", TESSDATA_PREFIX);
+        String result = "200";
+//        String TESSDATA_PREFIX = System.getenv("TESSDATA_PREFIX");
+//        log.info("ENV : TESSDATA_PREFIX : {}", TESSDATA_PREFIX);
+        log.info("ENV : dataPath : {}", dataPath);
         // 创建实例
         ITesseract instance = new Tesseract();
+        // 精度
+//        instance.setTessVariable("user_definded_dpi", "900");
+        // 训练文件路径
+        instance.setDatapath(dataPath);
         // 设置识别语言
         instance.setLanguage("chi_sim");
-        // 设置识别引擎
-        instance.setOcrEngineMode(1);
+        // 设置识别引擎 ITessAPI TessOcrEngineMode.class
+        instance.setOcrEngineMode(0);
+        // 识别图形模式？
+//        instance.setPageSegMode(ITessAPI.TessPageSegMode.PSM_SPARSE_TEXT);
         // 读取文件
         // DEBUG
-        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode.jpg");
+//        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/12315.jpeg");
+        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/img.png");
+//        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode.jpg");
         // JAR
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("/sample/healthyCode.jpg");
         if (healthyCodeIs == null) {
             throw new RuntimeException("找不到健康码文件");
         }
-        BufferedImage image = ImageIO.read(healthyCodeIs);
+        // 图像预处理
+        BufferedImage bi = ImageIO.read(healthyCodeIs);
+        int biWidth = bi.getWidth();
+        int biHeight = bi.getHeight();
+        BufferedImage invertImg = ImageHelper.invertImageColor(bi);
+        // 二值化
+        BufferedImage invert2BinaryImage = ImageHelper.convertImageToBinary(invertImg);
+        BufferedImage binaryImage = ImageHelper.convertImageToBinary(bi);
+        // 灰度化
+        BufferedImage grayImg = ImageHelper.convertImageToGrayscale(bi);
+        // 处理文件写入
+//        boolean writeResult = ImageIO.write(bi, "jpeg", new File("E://12315.jpeg"));
+//        log.info("writeResult -----> :{}", writeResult);
         // 识别
-        String result = instance.doOCR(image);
+        result = instance.doOCR(bi);
+        // 取词处理, 按照每个字取词
+        int pageIteratorLevel = ITessAPI.TessPageIteratorLevel.RIL_TEXTLINE;
+        List<Word> wordList = instance.getWords(bi, pageIteratorLevel);
+        for (Word word : wordList) {
+            log.info(word.toString());
+        }
         return result;
     }
 
