@@ -70,7 +70,8 @@ public class OcrController {
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/12315.jpeg");
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/img.png");
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode.jpg");
-        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode2.jpg");
+//        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode2.jpg");
+        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode3.png");
         // JAR
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("/sample/healthyCode.jpg");
         if (healthyCodeIs == null) {
@@ -137,8 +138,9 @@ public class OcrController {
         // DEBUG
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/12315.jpeg");
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/img.png");
-        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode.jpg");
+//        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode.jpg");
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode2.jpg");
+        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode3.png");
         // JAR
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("/sample/healthyCode.jpg");
         if (healthyCodeIs == null) {
@@ -154,6 +156,7 @@ public class OcrController {
         int nameRectX = biWidth;
         int nameRectY = (int) (biHeight * 0.05f);
         BufferedImage subNameImage = ImageHelper.getSubImage(bi, nameStartX, nameStartY, nameRectX, nameRectY);
+        BufferedImage binaryNameImage = ImageHelper.convertImageToBinary(subNameImage);
         BufferedImage invertSubNameImage = ImageHelper.invertImageColor(subNameImage);
         // 识别用户名
         String userName = instance.doOCR(invertSubNameImage);
@@ -171,12 +174,13 @@ public class OcrController {
         int qrcodeRectX = biWidth;
         int qrcodeRectY = (int) (biHeight * 0.17f);
         BufferedImage subQrcodeImage = ImageHelper.getSubImage(bi, qrcodeStartX, qrcodeStartY, qrcodeRectX, qrcodeRectY);
-        String qrcodeContent = QrcodeUtilz.readQRCode(subQrcodeImage);
+        BufferedImage binarySubCodeImage = ImageHelper.convertImageToBinary(subQrcodeImage);
+        String qrcodeContent = QrcodeUtilz.readQRCode(binarySubCodeImage);
         QrCode qrCode = JSON.parseObject(qrcodeContent, QrCode.class);
         result.setQrcodeContent(qrCode);
         log.info("qrcodeContent :{}", qrcodeContent);
         // 处理文件写入
-        boolean writeResult = ImageIO.write(subQrcodeImage, "jpeg", new File("E://12315.jpeg"));
+        boolean writeResult = ImageIO.write(binarySubCodeImage, "jpeg", new File("E://12315.jpeg"));
         log.info("writeResult -----> :{}", writeResult);
         // 识别时间和状态
         int pageIteratorLevel = ITessAPI.TessPageIteratorLevel.RIL_TEXTLINE;
