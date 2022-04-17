@@ -6,3 +6,7 @@ logging:
   config: classpath:logback.xml
   level:
     root: info
+
+tess4j:
+  data-path: E:/tessdata-main
+
