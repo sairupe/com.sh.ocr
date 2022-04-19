@@ -279,8 +279,11 @@ public class OcrController {
         result.setInputResult(inputResult);
         result.setErrorResult(errorResult);
 //        Process exec = Runtime.getRuntime().exec("java -version");
-        Process exec = Runtime.getRuntime().exec("/opt/anaconda3/envs/paddle_env/bin/paddleocr --image_dir /Users/syrianazh/Desktop/pyWorkSpace/paddle-ocr/qrcode.png --use_angle_cls true --use_gpu false");
-//        String[] cmd = new String[]{"java", "-version"};
+//        Process exec = Runtime.getRuntime().exec("/opt/anaconda3/envs/paddle_env/bin/paddleocr --image_dir /Users/syrianazh/Desktop/ppocr_img/subqrcode.jpg --use_angle_cls true --use_gpu false");
+        Process exec = Runtime.getRuntime().exec("/opt/anaconda3/envs/paddle_env/bin/paddleocr --image_dir /Users/syrianazh/Desktop/ppocr_img/qrcode2.jpg --use_angle_cls true --use_gpu false --rec_model_dir /Users/syrianazh/Desktop/ch_ppocr_server_v2.0_rec_infer --det_model_dir /Users/syrianazh/Desktop/ch_ppocr_server_v2.0_det_infer");
+//        Process exec = Runtime.getRuntime().exec("/opt/anaconda3/envs/paddle_env/bin/paddleocr --image_dir /Users/syrianazh/Desktop/ppocr_img/subqrcode.jpg --use_gpu false");
+//        Process exec = Runtime.getRuntime().exec("/opt/anaconda3/envs/paddle_env/bin/paddleocr --image_dir /Users/syrianazh/Desktop/ppocr_img/subqrcode.jpg --use_angle_cls true --use_gpu false --rec_model_dir /Users/syrianazh/Desktop/ch_ppocr_server_v2.0_rec_infer --det_model_dir /Users/syrianazh/Desktop/ch_ppocr_server_v2.0_det_infer");
+        //        String[] cmd = new String[]{"java", "-version"};
 //        Process exec = Runtime.getRuntime().exec(cmd);
 //        Process exec = Runtime.getRuntime().exec("ps -au");
         BufferedReader inputStream = new BufferedReader(new InputStreamReader(exec.getInputStream()));
