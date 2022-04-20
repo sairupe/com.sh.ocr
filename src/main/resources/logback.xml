@@ -19,29 +19,10 @@
             <!-- 日志最大的历史 7天 -->
             <maxHistory>7</maxHistory>
         </rollingPolicy>
-        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
-            <providers>
-                <pattern>
-                    <pattern>
-                        {
-                        "level": "%level",
-                        "logger": "%logger",
-                        "trace_id": "%X{traceId}",
-                        "app_key": "%X{app_key}",
-                        "env": "%X{env}",
-                        "host": "%X{host}",
-                        "thread_name": "%X{thread_name}",
-                        "request_uri": "%X{request_uri}",
-                        "request_path": "%X{request_path}",
-                        "request_method": "%X{request_method}",
-                        "device_type": "%X{device_type}",
-                        "user_agent": "%X{user_agent}",
-                        "message": "%msg",
-                        "stack_trace": "%exception"
-                        }
-                    </pattern>
-                </pattern>
-            </providers>
+        <encoder>
+            <!--格式化输出：%d:表示日期    %thread:表示线程名     %-5level:级别从左显示5个字符宽度  %msg:日志消息    %n:是换行符-->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger - %msg%n</pattern>
+            <charset>UTF-8</charset>
         </encoder>
         <filter class="ch.qos.logback.classic.filter.LevelFilter">
             <!-- 过滤的级别 -->
@@ -62,29 +43,10 @@
             <!-- 日志最大的历史 60天 -->
             <maxHistory>7</maxHistory>
         </rollingPolicy>
-        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
-            <providers>
-                <pattern>
-                    <pattern>
-                        {
-                        "level": "%level",
-                        "logger": "%logger",
-                        "trace_id": "%X{traceId}",
-                        "app_key": "%X{app_key}",
-                        "env": "%X{env}",
-                        "host": "%X{host}",
-                        "thread_name": "%X{thread_name}",
-                        "request_uri": "%X{request_uri}",
-                        "request_path": "%X{request_path}",
-                        "request_method": "%X{request_method}",
-                        "device_type": "%X{device_type}",
-                        "user_agent": "%X{user_agent}",
-                        "message": "%msg",
-                        "stack_trace": "%exception"
-                        }
-                    </pattern>
-                </pattern>
-            </providers>
+        <encoder>
+            <!--格式化输出：%d:表示日期    %thread:表示线程名     %-5level:级别从左显示5个字符宽度  %msg:日志消息    %n:是换行符-->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger - %msg%n</pattern>
+            <charset>UTF-8</charset>
         </encoder>
         <filter class="ch.qos.logback.classic.filter.LevelFilter">
             <!-- 过滤的级别 -->
