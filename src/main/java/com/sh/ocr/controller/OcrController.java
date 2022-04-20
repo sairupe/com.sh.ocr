@@ -18,8 +18,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -70,7 +72,8 @@ public class OcrController {
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/12315.jpeg");
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/img.png");
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode.jpg");
-        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode2.jpg");
+//        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode2.jpg");
+        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode3.png");
         // JAR
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("/sample/healthyCode.jpg");
         if (healthyCodeIs == null) {
@@ -137,8 +140,9 @@ public class OcrController {
         // DEBUG
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/12315.jpeg");
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/img.png");
-        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode.jpg");
+//        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode.jpg");
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode2.jpg");
+        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("sample/healthyCode3.png");
         // JAR
 //        InputStream healthyCodeIs = OcrController.class.getClassLoader().getResourceAsStream("/sample/healthyCode.jpg");
         if (healthyCodeIs == null) {
@@ -154,6 +158,7 @@ public class OcrController {
         int nameRectX = biWidth;
         int nameRectY = (int) (biHeight * 0.05f);
         BufferedImage subNameImage = ImageHelper.getSubImage(bi, nameStartX, nameStartY, nameRectX, nameRectY);
+        BufferedImage binaryNameImage = ImageHelper.convertImageToBinary(subNameImage);
         BufferedImage invertSubNameImage = ImageHelper.invertImageColor(subNameImage);
         // 识别用户名
         String userName = instance.doOCR(invertSubNameImage);
@@ -171,12 +176,13 @@ public class OcrController {
         int qrcodeRectX = biWidth;
         int qrcodeRectY = (int) (biHeight * 0.17f);
         BufferedImage subQrcodeImage = ImageHelper.getSubImage(bi, qrcodeStartX, qrcodeStartY, qrcodeRectX, qrcodeRectY);
-        String qrcodeContent = QrcodeUtilz.readQRCode(subQrcodeImage);
+        BufferedImage binarySubCodeImage = ImageHelper.convertImageToBinary(subQrcodeImage);
+        String qrcodeContent = QrcodeUtilz.readQRCode(binarySubCodeImage);
         QrCode qrCode = JSON.parseObject(qrcodeContent, QrCode.class);
         result.setQrcodeContent(qrCode);
         log.info("qrcodeContent :{}", qrcodeContent);
         // 处理文件写入
-        boolean writeResult = ImageIO.write(subQrcodeImage, "jpeg", new File("E://12315.jpeg"));
+        boolean writeResult = ImageIO.write(binarySubCodeImage, "jpeg", new File("E://12315.jpeg"));
         log.info("writeResult -----> :{}", writeResult);
         // 识别时间和状态
         int pageIteratorLevel = ITessAPI.TessPageIteratorLevel.RIL_TEXTLINE;
@@ -265,25 +271,51 @@ public class OcrController {
         return result;
     }
 
-    public static void main(String[] args) {
-        /**
-         * | 2022-04-14 16:32:00 ,
-         *
-         *  绿 码
-         */
-        String timeStr = "| 2022-04-14 16:32:00 ,";
-        String timeStr2 = "2022-04-14 16:32:00";
-        String statusStr = "绿 码";
-        log.info("11111");
-//        String timeRegex = "\\d{4}(\\-|)\\d{1,2}}(\\-|)\\d{1,2} ([0-1]?[0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])$";
-        String timeRegex = "\\d{4}(.)\\d{1,2}(\\-)\\d{1,2} ([0-1]?[0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])";
-        Pattern timeP = Pattern.compile(timeRegex);
-        Matcher timeM = timeP.matcher(timeStr);
-        while (timeM.find()) {
-            String group = timeM.group();
-            log.info("time : {}", group);
+    @GetMapping("/paddleOcr")
+    public PaddleOcrResult paddleOcr() throws Exception {
+        PaddleOcrResult result = new PaddleOcrResult();
+        List<String> inputResult = new ArrayList<>();
+        List<String> errorResult = new ArrayList<>();
+        result.setInputResult(inputResult);
+        result.setErrorResult(errorResult);
+//        Process exec = Runtime.getRuntime().exec("java -version");
+//        Process exec = Runtime.getRuntime().exec("/opt/anaconda3/envs/paddle_env/bin/paddleocr --image_dir /Users/syrianazh/Desktop/ppocr_img/subqrcode.jpg --use_angle_cls true --use_gpu false");
+        Process exec = Runtime.getRuntime().exec("/opt/anaconda3/envs/paddle_env/bin/paddleocr --image_dir /Users/syrianazh/Desktop/ppocr_img/qrcode2.jpg --use_angle_cls true --use_gpu false --rec_model_dir /Users/syrianazh/Desktop/ch_ppocr_server_v2.0_rec_infer --det_model_dir /Users/syrianazh/Desktop/ch_ppocr_server_v2.0_det_infer");
+//        Process exec = Runtime.getRuntime().exec("/opt/anaconda3/envs/paddle_env/bin/paddleocr --image_dir /Users/syrianazh/Desktop/ppocr_img/subqrcode.jpg --use_gpu false");
+//        Process exec = Runtime.getRuntime().exec("/opt/anaconda3/envs/paddle_env/bin/paddleocr --image_dir /Users/syrianazh/Desktop/ppocr_img/subqrcode.jpg --use_angle_cls true --use_gpu false --rec_model_dir /Users/syrianazh/Desktop/ch_ppocr_server_v2.0_rec_infer --det_model_dir /Users/syrianazh/Desktop/ch_ppocr_server_v2.0_det_infer");
+        //        String[] cmd = new String[]{"java", "-version"};
+//        Process exec = Runtime.getRuntime().exec(cmd);
+//        Process exec = Runtime.getRuntime().exec("ps -au");
+        BufferedReader inputStream = new BufferedReader(new InputStreamReader(exec.getInputStream()));
+        BufferedReader errorStream = new BufferedReader(new InputStreamReader(exec.getErrorStream()));
+        String line;
+        while ((line = inputStream.readLine()) != null) {
+            log.info(line);
+            inputResult.add(line);
         }
+        while ((line = errorStream.readLine()) != null) {
+            log.info(line);
+            errorResult.add(line);
+        }
+        inputStream.close();
+        errorStream.close();
+        int exitValue = exec.exitValue();
+        if (exitValue == 0) {// 成功
 
+        } else {
+            throw new RuntimeException("识别图片出错");
+        }
+        result.setExitValue(exitValue);
+        result.setExitValue(null);
+        return result;
+    }
+
+    @Data
+    static class PaddleOcrResult {
+        private List<String> inputResult;
+        private List<String> errorResult;
+        private Integer exitValue;
+        private Integer waitForValue;
     }
 
 
