@@ -7,6 +7,10 @@ logging:
   level:
     root: info
 
+spring:
+  application:
+    name: plaform-ocr
+
 tess4j:
   data-path: E:/tessdata-main
 

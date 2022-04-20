@@ -1,10 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration scan="false" scanPeriod="60 seconds" debug="false">
-<!--    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">-->
-<!--        <encoder>-->
-<!--            <pattern>%date{yyyy-MM-dd HH:mm:ss} | %-5level | %thread | %logger | %msg%n </pattern>-->
-<!--        </encoder>-->
-<!--    </appender>-->
+    <property name="log.path" value="/Users/syrianazh/logs/platform-ocr" />
+    <include resource="org/springframework/boot/logging/logback/base.xml"/>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <!--格式化输出：%d:表示日期    %thread:表示线程名     %-5level:级别从左显示5个字符宽度  %msg:日志消息    %n:是换行符-->
@@ -12,7 +9,94 @@
             <charset>UTF-8</charset>
         </encoder>
     </appender>
+    <!-- 系统日志输出 -->
+    <appender name="file_info" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${log.path}/info.log</file>
+        <!-- 循环政策：基于时间创建日志文件 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- 日志文件名格式 -->
+            <fileNamePattern>${log.path}/info.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- 日志最大的历史 7天 -->
+            <maxHistory>7</maxHistory>
+        </rollingPolicy>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <pattern>
+                    <pattern>
+                        {
+                        "level": "%level",
+                        "logger": "%logger",
+                        "trace_id": "%X{traceId}",
+                        "app_key": "%X{app_key}",
+                        "env": "%X{env}",
+                        "host": "%X{host}",
+                        "thread_name": "%X{thread_name}",
+                        "request_uri": "%X{request_uri}",
+                        "request_path": "%X{request_path}",
+                        "request_method": "%X{request_method}",
+                        "device_type": "%X{device_type}",
+                        "user_agent": "%X{user_agent}",
+                        "message": "%msg",
+                        "stack_trace": "%exception"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <!-- 过滤的级别 -->
+            <level>INFO</level>
+            <!-- 匹配时的操作：接收（记录） -->
+            <onMatch>ACCEPT</onMatch>
+            <!-- 不匹配时的操作：拒绝（不记录） -->
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
+    <appender name="file_error" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${log.path}/error.log</file>
+        <!-- 循环政策：基于时间创建日志文件 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- 日志文件名格式 -->
+            <fileNamePattern>${log.path}/error.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- 日志最大的历史 60天 -->
+            <maxHistory>7</maxHistory>
+        </rollingPolicy>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <pattern>
+                    <pattern>
+                        {
+                        "level": "%level",
+                        "logger": "%logger",
+                        "trace_id": "%X{traceId}",
+                        "app_key": "%X{app_key}",
+                        "env": "%X{env}",
+                        "host": "%X{host}",
+                        "thread_name": "%X{thread_name}",
+                        "request_uri": "%X{request_uri}",
+                        "request_path": "%X{request_path}",
+                        "request_method": "%X{request_method}",
+                        "device_type": "%X{device_type}",
+                        "user_agent": "%X{user_agent}",
+                        "message": "%msg",
+                        "stack_trace": "%exception"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <!-- 过滤的级别 -->
+            <level>ERROR</level>
+            <!-- 匹配时的操作：接收（记录） -->
+            <onMatch>ACCEPT</onMatch>
+            <!-- 不匹配时的操作：拒绝（不记录） -->
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
     <root level="INFO">
-        <appender-ref ref="STDOUT"/>
+        <appender-ref ref="file_info" />
+        <appender-ref ref="file_error" />
     </root>
 </configuration>
