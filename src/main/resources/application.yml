@@ -3,11 +3,12 @@ server:
     context-path: /com.sh.orc
 
 logging:
-  config: classpath:logback.xml
+  config: classpath:logback-spring.xml
   level:
     root: info
 
 spring:
+  log-path: /logs/platform-ocr
   application:
     name: plaform-ocr
 
