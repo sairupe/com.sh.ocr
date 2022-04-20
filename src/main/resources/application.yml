@@ -1,17 +1,23 @@
 server:
   servlet:
-    context-path: /com.sh.orc
-
-logging:
-  config: classpath:logback-spring.xml
-  level:
-    root: info
+    context-path: /com.sh.ocr
 
 spring:
   log-path: /logs/platform-ocr
   application:
     name: plaform-ocr
 
+pagehelper:
+  params: count=countSql
+  helper-dialect: mysql
+
+mybatis:
+  mapper-locations: classpath:/mapper/**/*.xml
+
+logging:
+  config: classpath:logback-spring.xml
+  level:
+    root: info
+
 tess4j:
   data-path: E:/tessdata-main
-
